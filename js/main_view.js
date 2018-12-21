@@ -32,10 +32,11 @@ var _viewObject = {
                 _viewObject.processes.setVisible(false);
             }, 500);
 			//处理外部回调
-			var listener=_viewObject.listener.get(obj.baseScene._id);
+			var listener=_viewObject.listener.get("addModel");
 			if(listener){
-				var cb=listener.get("addModel");
+				var cb=listener.get(obj.url);
 				if(cb)cb(obj);
+				listener.delete(obj.url);
 			}			
         },        
         onError : function (xhr) {
@@ -45,10 +46,12 @@ var _viewObject = {
             }, 3000);
         }
 	},
-	mouseState:{
-		position:{x:0,y:0},
-		lastPosition:{x:0,y:0},
-		bClick:true
+	inputState:{
+		isUserInteracting:false,
+		rotationDela:{
+			x:0,
+			y:0
+		}
 	},
     //事件回调
 	listener:new Map(),
@@ -84,7 +87,19 @@ function mainAnimate() {
 // };
 
 _viewObject.render = function () {
-	this.renderer.render( this.scene, this.camera );		
+	//TWEEN.update();	
+	var rotationDela=_viewObject.inputState.rotationDela;
+	if(this.inputState.isUserInteracting === false) {
+		rotationDela.y += 0.1;
+		if(rotationDela.y < 0) {
+			rotationDela.y += 360;
+		} else if(rotationDela.y > 360) {
+			rotationDela.y -= 360;
+		}
+	}
+	_viewObject.gSphere.rotation.y = THREE.Math.degToRad(-rotationDela.y);
+	_viewObject.gSphere.rotation.x = THREE.Math.degToRad(-rotationDela.x);
+	_viewObject.renderer.render( _viewObject.scene, _viewObject.camera );		
 };
 
 _viewObject.draw = function (startOrstop) {
@@ -191,7 +206,7 @@ _viewObject.createScene=function(sceneId,containerDom,sceneOptions){
 }
 
 //添加一个模型
-_viewObject.addModel = function (url, modelId,cb,initEffectParams) {
+_viewObject.addModel = function (url, modelId,cb,initEffectParams,onProgress,onFinish,onError) {
 
 	var modelManager=this.modelManager;
 
@@ -214,18 +229,18 @@ _viewObject.addModel = function (url, modelId,cb,initEffectParams) {
     }
     if(cb instanceof Function)
     {
-		if(!_viewObject.listener.has(sceneId)){
-			var lisen=new Map;
-			_viewObject.listener.set(sceneId,lisen);
-			lisen.set("addModel",cb);
+		if(!_viewObject.listener.has("addModel")){
+			var lisener=new Map;
+			_viewObject.listener.set("addModel",lisener);
+			lisener.set(url,cb);
 		}else{
-			var lisen=_viewObject.listener.get(sceneId);
-			if(!lisen.has("addModel")){
-				lisen.set("addModel",cb);
+			var lisener=_viewObject.listener.get("addModel");
+			if(!lisener.has(url)){
+				lisener.set(url,cb);
 			}
 		}        
     }    
-    modelManager.addModel( obj,initEffectParams, _viewObject.loadCallback.onProgress,_viewObject.loadCallback.onFinish,_viewObject.loadCallback.onError);    
+    modelManager.addModel( obj,initEffectParams,onProgress,onFinish,onError);    
 }
 //场景是否存在模型
 _viewObject.hadModelInScene=function(sceneId){
@@ -501,7 +516,7 @@ $(function () {
 	window.addEventListener( 'resize', _viewObject.onWindowResize, false );
 
 
-	var mc = new Hammer.Manager(container);
+	var inputEvent = new Hammer.Manager(container);
 
 	// create a pinch and rotate recognizer
 	// these require 2 pointers
@@ -512,32 +527,37 @@ $(function () {
 	pinch.recognizeWith(rotate);
 
 	// add to the Manager
-	mc.add([pinch, rotate]);
+	inputEvent.add([pinch, rotate]);
 
 
-	mc.on("pinch rotate", function(ev) {
-		
+	inputEvent.on("pinch rotate", function(ev) {
+		alert(0);
 	});
-	var sphereGroup=new THREE.Group();
-	sphereGroup.name="sphere_group";
-	_viewObject.scene.add(sphereGroup);
+	
+	var sphere=new THREE.Object3D();
+	sphere.name="sphere_group";
+	_viewObject.scene.add(sphere);
+	_viewObject.gSphere=sphere;
 	//模型管理器
 	loadJs(["js/super_manager.js","js/model_manager.js"],undefined,function(){
 		_viewObject.modelManager=new ModelManager(_viewObject.scene,_viewObject.camera);
 		var url="data/xingkongmianp/haipingmian.FBX";
 		var initEffectParams={
-			parentNode:sphereGroup,
+			parentNode:sphere,
 			materialEffect:{
-				Side:THREE.DoubleSide
+				side:THREE.DoubleSide
 			}
 		}
-		_viewObject.addModel(url,"haipingmian",null,initEffectParams);
-		url="data/xingkongmianp/huancaibejing.FBX";
-		_viewObject.addModel(url,"huancaibejing",null,initEffectParams);
-		url="data/xingkongmianp/yinhe.FBX";
-		_viewObject.addModel(url,"yinhe",null,initEffectParams);
-
+		_viewObject.addModel(url,"haipingmian",function(){
+			url="data/xingkongmianp/huancaibejing.FBX";
+			_viewObject.addModel(url,"huancaibejing",null,initEffectParams);
+			url="data/xingkongmianp/yinhe.FBX";
+			_viewObject.addModel(url,"yinhe",null,initEffectParams);
+		},initEffectParams,_viewObject.loadCallback.onProgress,_viewObject.loadCallback.onFinish,_viewObject.loadCallback.onError);
+		
+		_viewObject.onWindowResize();
 		_viewObject.draw(true);
+		
 	})
 
 	

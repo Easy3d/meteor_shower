@@ -121,27 +121,10 @@ ModelManager.prototype.update = function(delta) {
 	*/
 }
 
-ModelManager.prototype.load = function(modelFormat,loadFunc) {
-	var ext=modelFormat.toLowerCase();
-	if(ext==="gltf"||ext==="glb"){
-		return this._loader.gltf
-	}else if(ext==="obj"){
-		return this._loader.obj
-	}else if(ext==="fbx"){
-        if(this._loader.fbx){
-            loadFunc(this._loader.fbx);
-        }else{
-
-        }
-    }
-}
 function getExtension(url){
 	return url.substring(url.lastIndexOf('.')+1);
 }
 
-ModelManager.prototype.loadModel=function(){
-
-}
 // 添加一个模型
 ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFinish,onError){
 	if (!defined(obj.url))return undefined;	
@@ -185,7 +168,7 @@ ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFin
             // 
             //根据模型大小设置相机视角
             obj.scene.boundingSphere=new THREE.Sphere(obj.scene.position.clone(),0.0);
-            var bs=obj.scene.boundingSphere.copy(scope.calculateBoundingSphere(obj.scene));
+            var bs=obj.scene.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
             // var pos=new THREE.Vector3();
             // baseScene.camera.position.copy(obj.scene.getWorldPosition(pos));
             // baseScene.camera.position.y+=(bs.radius+9)*Math.sin(Math.PI/4);
@@ -372,7 +355,7 @@ function combineSpere(s1,s2){
 	}
 }
 // obj必须是Object3D
-ModelManager.prototype.calculateBoundingSphere=function(obj){
+ModelManager.prototype.computeBoundingSphere=function(obj){
 	if (!(obj instanceof THREE.Object3D)) return undefined;
 	var bs=new THREE.Sphere(obj.position.clone(),0.0);
 	obj.getWorldPosition(bs.center);
@@ -389,7 +372,7 @@ ModelManager.prototype.calculateBoundingSphere=function(obj){
 	}else{
 		var children = obj.children;
 		for ( var i = 0, l = children.length; i < l; i ++ ) {
-			var s=this.calculateBoundingSphere(children[i]);
+			var s=this.computeBoundingSphere(children[i]);
 			if(i==0){
 				bs.copy(s);
 			}else
@@ -895,70 +878,3 @@ ModelManager.prototype.removePatrol= function(){
 /***********************************************************************************************************/
 
 
-
-
-
-ModelManager.prototype.bingBong=function(obj,sonDepth,v=new THREE.Vector3(2,2,2),type=undefined){
-	if(typeof obj === 'string' ){
-		if(!this.has(obj)) return false;
-		obj=this.getObject(obj);
-	}
-	function bingBongObject(o3d,depth,valuse){
-		if(depth===0||o3d.children.length===0){
-			var wp=o3d.getWorldPosition();
-			wp.x*=v.x;
-			wp.y*=v.y;
-			wp.z*=v.z;
-			if(!defined(o3d.orginPositon)){
-				o3d.orginPositon=new THREE.Vector3();
-				o3d.orginPositon.copy(o3d.position);
-			}
-			o3d.position.copy(o3d.worldToLocal(wp));
-			//obj.updateMatrixWorld();
-		}else {
-			var children=o3d.children;
-			for(var i=0;i<children.length;i++){
-				var o=children[i];
-				depth--;
-				bingBongObject(o,depth,v);
-			}
-		}
-	}
-	bingBongObject(obj.scene,sonDepth,v);
-	
-}
-
-
-ModelManager.prototype.loadModelInfo=function(obj,dataUrl,finish){
-	var loader = new THREE.FileLoader();
-
-	loader.setResponseType( 'json' );
-
-	loader.load( dataUrl, function ( data ) {
-
-		obj.modelInfo=data;
-
-		if(finish !== undefined){
-			finish(obj);
-		}
-
-	},undefined,function(e){
-		finish(obj);
-	});
-}
-
-
-ModelManager.prototype.autoOffset=function(o3d,position){
-	var offset=new THREE.Vector3();
-		//获取模型轴原点
-	var modelOrigin=new THREE.Vector3();
-	o3d.getWorldPosition(modelOrigin);
-	//var vec=new THREE.Vector3();
-	var direction=new THREE.Vector3().subVectors(position,modelOrigin).normalize();
-	var offsetVec=direction.multiplyScalar(o3d.boundingSphere.radius/4);
-	offset.addVectors(position,offsetVec);
-	var matrix=new THREE.Matrix4().setPosition(position);
-	var m1 = new THREE.Matrix4();
-	m1.getInverse(matrix)
-	return offset.applyMatrix4(m1 );
-}
