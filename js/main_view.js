@@ -160,50 +160,6 @@ _viewObject.mouseUp=function(event) {
 		_viewObject.mouseState.bClick=false;
 	}
 }
-_viewObject._createRender=function(containerDom){
-    //0、渲染
-	var renderParams = {
-		width: containerDom.offsetWidth,
-		height: containerDom.offsetHeight,
-		antialias: true,
-		postprocess: false,
-		domElement: containerDom,
-    };
-    _viewObject.container=containerDom;
-	var renderObj = this.rendererManager.addRender(renderParams);
-    renderObj.setDomElement(containerDom);
-	window.addEventListener('resize', _viewObject.onWindowResize, false);
-	//捕获阶段处理事件
-	containerDom.addEventListener('click', _viewObject.onClick, true);
-    //$(containerDom).on('click', _viewObject.onClick);
-	//$(containerDom).on('mousemove', onDocumentMouseMove);
-	$(containerDom).on('mousedown', _viewObject.mouseDown);
-	$(containerDom).on('mouseup', _viewObject.mouseUp);
-	if(this.isDebug){
-		this._stats = new Stats();
-		document.body.appendChild( this._stats.dom );
-	}
-    return renderObj;
-}
-
-_viewObject.createScene=function(sceneId,containerDom,sceneOptions){
-    var options=sceneOptions||_viewObject.sceneDefaultOptions;
-    //得到第一个renderobj。一般也只有一个
-    var renderObj=this.rendererManager.getRender(0);
-    if(!renderObj){
-        renderObj=this._createRender(containerDom);
-    }
-    //构造一个scene
-    options.id=sceneId;
-    options.size=options.size||{left:0,top:0,width:containerDom.offsetWidth,height:containerDom.offsetHeight};
-
-    options.outline = false;
-    if(!options.loadManager)options.loadManager=this.loadManager;
-	var baseScene = renderObj.addBaseScene(options);
-    this.scenes.set(sceneId,baseScene);    
-    bgManager.addSceneManager(baseScene);
-	this.render(true);
-}
 
 //添加一个模型
 _viewObject.addModel = function (url, modelId,cb,initEffectParams,onProgress,onFinish,onError) {
@@ -242,20 +198,7 @@ _viewObject.addModel = function (url, modelId,cb,initEffectParams,onProgress,onF
     }    
     modelManager.addModel( obj,initEffectParams,onProgress,onFinish,onError);    
 }
-//场景是否存在模型
-_viewObject.hadModelInScene=function(sceneId){
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return false;
-    var modelManager=baseScene.modelManager;
-    return modelManager.size()>0;
-}
 
-_viewObject.setModelProperty = function (sceneId, modelId,data) {
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return null;
-    var modelManager=baseScene.modelManager;
-    modelManager.setModelNodeProperty(modelId,data);
-}
 _viewObject.remove = function (sceneId, modelId) {
     var baseScene=this.scenes.get(sceneId);
     if(!baseScene)return null;
@@ -263,12 +206,6 @@ _viewObject.remove = function (sceneId, modelId) {
     modelManager.removeModel(modelId);   
 }
 
-_viewObject.isLoad = function (sceneId, modelId) {
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return false;
-    var modelManager=baseScene.modelManager;
-    return modelManager.has(modelId)?true:false;
-}
 
 _viewObject.setShow = function (sceneId, modelId, visible) {
     var baseScene=this.scenes.get(sceneId);
@@ -408,31 +345,6 @@ _viewObject.animateDraw = function (sceneId,drawID,bPlay,type,duration) {
 }
 
 //type:回调类型 type:"click"
-_viewObject.addBaseSceneCallBack = function (sceneId,type,cb) {
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return null;
-    baseScene.addCallBack(type,cb);
-}
-
-// function clickModel(baseScene,root,selObj){
-// 	//选中的物体
-// 	var node=selObj.object;
-// 	var labelManager=baseScene.labelManager;
-// 	if(labelManager){
-// 		//没有选中，即点击空白处
-// 		if(!node){
-// 			labelManager.clearAllLabel();
-// 		}else{
-// 			var offset=new THREE.Vector3(0.5,0.5,0.5);
-// 			//var obj=baseScene.getObjectFromObj3D(root);
-// 			var pickPos=selObj.point;
-// 			getDivInfo(node.name,function(div){
-// 				labelManager.addInfoLabel(0,div,pickPos,offset);
-// 			})
-// 		}
-// 	}		
-// }
-//type:回调类型 type:"click"
 _viewObject.addBaseSceneListener = function (sceneId,type,func) {
     var baseScene=this.scenes.get(sceneId);
     if(!baseScene)return null;
@@ -514,30 +426,13 @@ $(function () {
 	_viewObject.scene.add( light );
 
 	window.addEventListener( 'resize', _viewObject.onWindowResize, false );
-
-
-	var inputEvent = new Hammer.Manager(container);
-
-	// create a pinch and rotate recognizer
-	// these require 2 pointers
-	var pinch = new Hammer.Pinch();
-	var rotate = new Hammer.Rotate();
-
-	// we want to detect both the same time
-	pinch.recognizeWith(rotate);
-
-	// add to the Manager
-	inputEvent.add([pinch, rotate]);
-
-
-	inputEvent.on("pinch rotate", function(ev) {
-		alert(0);
-	});
 	
 	var sphere=new THREE.Object3D();
 	sphere.name="sphere_group";
 	_viewObject.scene.add(sphere);
 	_viewObject.gSphere=sphere;
+	_viewObject.onWindowResize();
+	_viewObject.draw(true);
 	//模型管理器
 	loadJs(["js/super_manager.js","js/model_manager.js"],undefined,function(){
 		_viewObject.modelManager=new ModelManager(_viewObject.scene,_viewObject.camera);
@@ -555,10 +450,26 @@ $(function () {
 			_viewObject.addModel(url,"yinhe",null,initEffectParams);
 		},initEffectParams,_viewObject.loadCallback.onProgress,_viewObject.loadCallback.onFinish,_viewObject.loadCallback.onError);
 		
-		_viewObject.onWindowResize();
-		_viewObject.draw(true);
-		
 	})
 
+
+	//注册事件
+	
+	_viewObject.inputEvent = new Hammer.Manager(container);
+	// create a pinch and rotate recognizer
+	// these require 2 pointers
+	var pinch = new Hammer.Pinch();
+	var rotate = new Hammer.Rotate();
+
+	// we want to detect both the same time
+	pinch.recognizeWith(rotate);
+
+	// add to the Manager
+	_viewObject.inputEvent.add([pinch, rotate]);
+
+
+	_viewObject.inputEvent.on("pinch rotate", function(ev) {
+		alert(0);
+	});
 	
 })
