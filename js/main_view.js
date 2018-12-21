@@ -455,21 +455,39 @@ $(function () {
 
 	//注册事件
 	
-	_viewObject.inputEvent = new Hammer.Manager(container);
-	// create a pinch and rotate recognizer
-	// these require 2 pointers
-	var pinch = new Hammer.Pinch();
-	var rotate = new Hammer.Rotate();
-
-	// we want to detect both the same time
-	pinch.recognizeWith(rotate);
-
-	// add to the Manager
-	_viewObject.inputEvent.add([pinch, rotate]);
+	_viewObject.inputEvent = new Hammer.Manager(container, {
+		recognizers: [
+			// RecognizerClass, [options], [recognizeWith, ...], [requireFailure, ...]
+			[Hammer.Tap],
+			[Hammer.Pan,{ direction: Hammer.DIRECTION_ALL }],
+			[Hammer.Pinch, { enable: true }],
+			[Hammer.Swipe,{ direction: Hammer.DIRECTION_ALL }],
+		]
+	});
 
 
-	_viewObject.inputEvent.on("pinch rotate", function(ev) {
-		alert(0);
+
+	_viewObject.inputEvent.on("pinch", function(ev) {
+		alert(ev.type);
+	});
+	_viewObject.inputEvent.on("tap", function(ev) {
+		alert(ev.type);
+	});
+	_viewObject.inputEvent.on("swipe", function(ev) {
+		alert(ev.type);
+	});
+	_viewObject.inputEvent.on("pan panstart panmove panend pancancel", function(ev) {
+		switch (ev.type) {
+			case "panstart":
+				console.info(ev);
+				break;
+			case "panmove":
+				
+				break;
+			case "panend":
+				console.info(ev);
+				break;
+		}
 	});
 	
 })
