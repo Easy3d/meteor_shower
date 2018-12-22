@@ -23,11 +23,11 @@ var _viewObject = {
         onProgress:function (xhr) {
             if (xhr.lengthComputable) {
                 var percentComplete = xhr.loaded / xhr.total * 100;
-                _viewObject.processes.update(Math.round(percentComplete, 2) + "%", percentComplete>99?"正在解析模型，请稍等...":"正在下载模型...");
+                _viewObject.processes.update(Math.round(percentComplete, 2) + "%", percentComplete>99?" Initializing...":"Loading...");
             }
         },        
         onFinish : function (obj) {
-            _viewObject.processes.update("100%", "下载完成");
+            _viewObject.processes.update("100%", "Scene is ready!");
             setTimeout(function () {
                 _viewObject.processes.setVisible(false);
             }, 500);
@@ -40,7 +40,7 @@ var _viewObject = {
 			}			
         },        
         onError : function (xhr) {
-            _viewObject.processes.update("出错", "下载模型失败,请检查网络！");
+            _viewObject.processes.update("error", "check your internet!");
             setTimeout(function () {
                 _viewObject.processes.setVisible(false);
             }, 3000);
@@ -74,27 +74,17 @@ function mainAnimate() {
 }
 
 
-
-//数据管理器
-// _viewObject.loadManager.onProgress = function (item, loaded, total) {
-//     // console.log( item, loaded, total );
-//     var percent = Math.round(loaded / total * 100, 2);
-//     if (percent == 100 && total != 1) {
-//         percent = 99;
-//         // processes.setVisible(false);
-//     }
-//     processes.update(percent + "%", "正在加载模型...");
-// };
-
 _viewObject.render = function () {
 	//TWEEN.update();	
 	var rotationDelta=_viewObject.inputState.rotationDelta;
 	if(this.inputState.isUserInteracting === false) {
-		rotationDelta.y += 0.1;
-		checkDegree(rotationDelta.y);
+		rotationDelta.x += 0.1;
+		checkDegree(rotationDelta.x);
 	}
-	_viewObject.gSphere.rotation.y = THREE.Math.degToRad(-rotationDelta.y);
-	_viewObject.gSphere.rotation.x = THREE.Math.degToRad(-rotationDelta.x);
+	_viewObject.gSphere.rotation.y = THREE.Math.degToRad(-rotationDelta.x);
+	_viewObject.gSphere.rotation.x= THREE.Math.degToRad(-rotationDelta.y);
+	var delta=_viewObject.clock.getDelta();
+	if(_viewObject.modelManager)_viewObject.modelManager.update(delta);
 	_viewObject.renderer.render( _viewObject.scene, _viewObject.camera );		
 };
 
@@ -134,28 +124,7 @@ _viewObject.onClick=function(event) {
 	}
 	
 }
-_viewObject.mouseDown=function(event) {
 
-	event.preventDefault();
-	// var pos=new THREE.Vector2(event.clientX,event.clientY);
-	var pos = new THREE.Vector2(event.offsetX, event.offsetY);
-	_viewObject.mouseState.lastPosition.x=pos.x;
-	_viewObject.mouseState.lastPosition.y=pos.y;
-	_viewObject.mouseState.bClick=true;
-}
-_viewObject.mouseUp=function(event) {
-
-	event.preventDefault();
-	// var pos=new THREE.Vector2(event.clientX,event.clientY);
-	var pos = new THREE.Vector2(event.offsetX, event.offsetY);
-	_viewObject.mouseState.position.x=pos.x;
-	_viewObject.mouseState.position.y=pos.y;
-	var lastPos=_viewObject.mouseState.lastPosition;
-	if(Math.abs(pos.x-lastPos.x)>5||Math.abs(pos.y-lastPos.y)>5)
-	{
-		_viewObject.mouseState.bClick=false;
-	}
-}
 
 //添加一个模型
 _viewObject.addModel = function (url, modelId,cb,initEffectParams,onProgress,onFinish,onError) {
@@ -203,12 +172,6 @@ _viewObject.remove = function (sceneId, modelId) {
 }
 
 
-_viewObject.setShow = function (sceneId, modelId, visible) {
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return null;
-    var modelManager=baseScene.modelManager;
-    modelManager.showModel(modelId, visible);
-}
 
 
 _viewObject.showLabel=function(sceneId,modelId,nodeName,bShow,divDom,offset=undefined,aniTime=500,bClearOther=true,cb){
@@ -250,32 +213,7 @@ _viewObject.locateNode = function (sceneId, modelId, time, nodeName,bHighlight,c
     var modelManager=baseScene.modelManager;
     modelManager.locateByName(modelId, nodeName,time, bHighlight,cb)
 }
-//播放节点动画
-/*
-sceneId：场景索引
-modelID：添加模型时给的模型ID
-node：节点名称/三维节点对象
-play：播放或者停止
-loop：播放次数
-*/
-_viewObject.playNodeAction = function(sceneId,modelId,nodeName, startTime, endTime, play = true, loop = 2,timeIsFrameNums=false){
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return null;
-    if(baseScene&&baseScene.animationCtrlMap.has(modelId)){
-        var animationCtrl=baseScene.animationCtrlMap.get(modelId);
-        animationCtrl.playNodeAction(nodeName,play,loop,startTime, endTime,timeIsFrameNums);
-    }
-    
-}
-_viewObject.playAction = function (sceneId, modelId, actionName, startTime, endTime, play = true, loop = 2) {
-    var baseScene=this.scenes.get(sceneId);
-    if(!baseScene)return null;
-    if (baseScene && baseScene.animationCtrlMap.has(modelId)) {
-        var animationCtrl = baseScene.animationCtrlMap.get(modelId);
-        animationCtrl.playAction(actionName, play, loop, startTime, endTime);
-    }
 
-}
 //draw
 /*
 var drawOptions={
@@ -383,7 +321,7 @@ _viewObject.loadState = {
 function Processwindow() {
 	var win = document.getElementById("process-window");
 	if (!win) {
-		var html = '<div id = "process-window" class="Absolute-Center"><div id = "animition"><div id = "percent"> 30%</div><div id ="round-picture"></div></div><div id = "text" style="padding: 10px;">正在加载 拉森号 </div></div>';
+		var html = '<div id = "process-window" class="Absolute-Center"><div id = "animition"><div id = "percent"> 30%</div><div id ="round-picture"></div></div><div id = "text" style="padding: 10px;">loading...</div></div>';
 		document.body.insertAdjacentHTML("beforeend", html);
 		win = document.getElementById("process-window");
 	}
@@ -428,6 +366,7 @@ $(function () {
 	_viewObject.scene.add(sphere);
 	_viewObject.gSphere=sphere;
 	_viewObject.onWindowResize();
+	_viewObject.clock = new THREE.Clock();
 	_viewObject.draw(true);
 	//模型管理器
 	var modelManager=_viewObject.modelManager;
@@ -465,26 +404,27 @@ $(function () {
 		recognizers: [
 			// RecognizerClass, [options], [recognizeWith, ...], [requireFailure, ...]
 			[Hammer.Tap],
-			[Hammer.Press],
 			[Hammer.Pan,{ direction: Hammer.DIRECTION_ALL }],
 			[Hammer.Pinch, { enable: true }],
-			[Hammer.Swipe,{ direction: Hammer.DIRECTION_ALL }],
 		]
 	});
+
+	var       onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+                lon = 0, onMouseDownLon = 0,
+                lat = 0, onMouseDownLat = 0,
+                phi = 0, theta = 0;
+
 
 	var inputState=_viewObject.inputState;
 	var rotationDelta=_viewObject.inputState.rotationDelta;
 	var camera=_viewObject.camera;
-	_viewObject.inputEvent.on("pinchstart pinchmove pinchend pinchcancel pinchin pinchout", function(ev) {
+	_viewObject.inputEvent.on("pinchstart pinchend pinchcancel pinchin pinchout", function(ev) {
 		
 		switch (ev.type) {
 			case "pinchstart":
 				inputState.isUserInteracting=true;
+				break;
 
-				break;
-			case "panmove":
-				inputState.isUserInteracting=true;
-				break;
 			case "panend":
 				inputState.isUserInteracting=false;
 				break;
@@ -503,32 +443,37 @@ $(function () {
 						objArr[0].maxRadius=objArr[0].boundingSphere.radius;
 						objArr[0].minRadius=110;
 					}
-					objArr[0].scene.visible=true;
+					
 					if(objArr[0].boundingSphere.radius<objArr[0].maxRadius){
-						camera.fov+=0.08;
+						camera.fov*=1.01;
 						camera.updateProjectionMatrix();
-						changeScale(objArr[0],1.02);
+						changeScale(objArr[0],1.11);
 					}else{
-						
+						if(camera.fov<45){
+							camera.fov*=1.01;
+							camera.updateProjectionMatrix();
+						}
 					}
 				}else if(currentView==="huancaibejing"){
 					
 					if(objArr[1]==undefined){
 						objArr[1]=modelManager.getObject("huancaibejing");
 						objArr[1].maxRadius=objArr[1].boundingSphere.radius;
-						objArr[1].minRadius=200;
-						camera.near=200;						
+						objArr[1].minRadius=550;
+						camera.near=500;						
 					}
-					objArr[1].scene.visible=true;
+					
 					if(objArr[1].boundingSphere.radius<objArr[1].maxRadius){
-						camera.fov+=0.08;
+						camera.fov*=1.01;
 						camera.updateProjectionMatrix();
-						changeScale(objArr[1],1.02);
+						changeScale(objArr[1],1.11);
 					}else{						
 						camera.fov=15;
-						camera.near=10;
+						camera.near=100;
 						camera.updateProjectionMatrix();
 						currentView="haipingmian";
+						objArr[0].scene.visible=true;
+						objArr[1].scene.visible=true;
 					
 					}
 				}else if(currentView==="yinhe"){
@@ -538,14 +483,16 @@ $(function () {
 						objArr[2].minRadius=500;
 					}
 					if(objArr[2].boundingSphere.radius<objArr[2].maxRadius){
-						camera.fov+=0.08;
+						camera.fov*=1.01;
 						camera.updateProjectionMatrix();
-						changeScale(objArr[2],1.01);
+						changeScale(objArr[2],1.11);
 					}else{
 						camera.fov=15;
-						camera.near=200;
+						camera.near=500;
 						currentView="huancaibejing"
 						camera.updateProjectionMatrix();
+						objArr[1].scene.visible=true;
+						objArr[0].scene.visible=true;
 					}
 				}
 				break;
@@ -559,63 +506,64 @@ $(function () {
 						objArr[0].minRadius=110;
 					}
 					if(objArr[0].boundingSphere.radius>objArr[0].minRadius){
-						camera.fov-=0.08;
+						camera.fov*=0.99;
 						camera.near=100;
 						camera.updateProjectionMatrix();
-						changeScale(objArr[0],0.98);
+						changeScale(objArr[0],0.9);
 					}else{
 						if(camera.near<objArr[0].boundingSphere.radius){
-							camera.near+=0.2;
+							camera.near*=1.1;
 							// if(camera.fov<45){
 							// 	camera.fov+=0.1;
 							// }
 							camera.updateProjectionMatrix();
 							
 						}else{
+							objArr[0].scene.visible=false;
 							camera.fov=45;
 							camera.updateProjectionMatrix();
 							currentView="huancaibejing";
 						}
 					}
 				}else if(currentView==="huancaibejing"){
-					objArr[0].scene.visible=false;
 					if(objArr[1]==undefined){
 						objArr[1]=modelManager.getObject("huancaibejing");
 						objArr[1].maxRadius=objArr[1].boundingSphere.radius;
-						objArr[1].minRadius=200;
-						camera.near=200;
-						objArr[0].scene.visible=false;
+						objArr[1].minRadius=550;
+						camera.near=500;						
 					}
 					if(objArr[1].boundingSphere.radius>objArr[1].minRadius){
-						camera.fov-=0.08;
-						camera.near=200;
+						camera.fov*=0.99;
+						camera.near=500;
 						camera.updateProjectionMatrix();
-						changeScale(objArr[1],0.98);
+						changeScale(objArr[1],0.9);
 					}else{
 						if(camera.near<objArr[1].boundingSphere.radius){
-							camera.near+=0.5;
+				
+							camera.near*=1.1;
 							// if(camera.fov<45){
 							// 	camera.fov+=0.1;
 							// }
 							camera.updateProjectionMatrix();
 							
 						}else{
+							objArr[1].scene.visible=false;
 							camera.fov=45;
 							camera.updateProjectionMatrix();
 							currentView="yinhe";
 						}
 					}
 				}else if(currentView==="yinhe"){
-					objArr[1].scene.visible=false;
+					
 					if(objArr[2]==undefined){
 						objArr[2]=modelManager.getObject("yinhe");
 						objArr[2].maxRadius=objArr[2].boundingSphere.radius;
 						objArr[2].minRadius=500;
 					}
 					if(objArr[2].boundingSphere.radius>objArr[2].minRadius){
-						camera.fov-=0.08;
+						camera.fov*=0.99;
 						camera.updateProjectionMatrix();
-						changeScale(objArr[2],0.98);
+						changeScale(objArr[2],0.8);
 					}
 				}
 				break;
@@ -632,30 +580,29 @@ $(function () {
 	});
 
 	//拖动屏幕事件
-	_viewObject.inputEvent.on("pan panstart panleft panright pandown panup panmove panend pancancel", function(ev) {
+	_viewObject.inputEvent.on("panstart panmove panend pancancel", function(ev) {
 		switch (ev.type) {
 			case "panstart":
 				inputState.isUserInteracting=true;
+				//开始触摸点
+				inputState.startTouchPoint={
+					x:ev.center.x,
+					y:ev.center.y
+				};
+				//触摸时旋转角
+				inputState.startRotationPoint={
+					x:rotationDelta.x,
+					y:rotationDelta.y
+				};
 				break;
-			case "panup":
-				inputState.isUserInteracting=true;
-				rotationDelta.x-=PAN_SPEED;
-				checkDegree(rotationDelta.x);
-				break;
-			case "pandown":
-				inputState.isUserInteracting=true;
-				rotationDelta.x+=PAN_SPEED;
-				checkDegree(rotationDelta.x);
-				break;
-			case "panright":
-				inputState.isUserInteracting=true;
-				rotationDelta.y+=PAN_SPEED;
-				checkDegree(rotationDelta.y);
-				break;
-			case "panleft":
-				inputState.isUserInteracting=true;
-				rotationDelta.y-=PAN_SPEED;
-				checkDegree(rotationDelta.y);
+			case "panmove":
+
+				if(inputState.isUserInteracting=== true) {
+    
+                    rotationDelta.x = (ev.center.x - inputState.startTouchPoint.x) * PAN_SPEED + inputState.startRotationPoint.x;
+                    rotationDelta.y = (ev.center.y - inputState.startTouchPoint.y) * PAN_SPEED + inputState.startRotationPoint.y;
+					checkDegree(rotationDelta.x);
+                }				
 				break;
 			case "panend":
 				inputState.isUserInteracting=false;

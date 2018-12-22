@@ -13,6 +13,8 @@ function ModelManager(scene,camera) {
 
 	this._selectObj=undefined;
 
+	this.mixers=[];
+
 
 //高亮的mesh列表
 	this._highLights=[];
@@ -34,91 +36,12 @@ ModelManager.prototype.constructor = ModelManager;
 
 //每帧更新参数
 ModelManager.prototype.update = function(delta) {
-	var baseScene=this._baseScene;
-	//自动旋转
+	if (this.mixers&& this.mixers.length > 0 ) {
+		for ( var i = 0; i < this.mixers.length; i ++ ) {
 
-	this._rotationList.forEach(function(ro){
-		var o3d=ro.o3d;//object3d;
-		var rVect=ro.rotationAxies;//旋转方向；
-		var rRad=ro.rollSpeed;  //单位每秒旋转弧度
-		rRad*=delta;
-		if(o3d instanceof THREE.Object3D&&ro.bRotation){
-			o3d.rotateOnAxis(rVect,rRad);
-		}
-	});	
-
-	//相机巡游物件
-	this.patrolUpdate(delta);
-	/*
-	//第一人称漫游
-	if(this.visitMode){
-		var camera=baseScene.camera;
-		var camPos=new THREE.Vector3();
-		var camVec=new THREE.Vector3();
-		function updateCamera(){
-			camera.updateMatrixWorld();
-			camera.getWorldPosition(camPos);
-			camera.getWorldDirection(camVec);
-		}
-		updateCamera();
-		//创建前后左右下  5条射线
-		var flyCtrl=baseScene.controls;
-		//向下发射，自动调整相机高度
-		var downVec=new THREE.Vector3(0,-1,0);
-		//downVec=camera.localToWorld(downVec);
-		var downRaycaster = new THREE.Raycaster(camPos,downVec,0,1.6);
-		var intersects = downRaycaster.intersectObjects(this.currentShowModel.scene.children,true);
-		if(intersects[0]){
-			camPos.y+=1.6-intersects[0].distance;
-			camera.worldToLocal(camPos);
-			camera.position.copy(camPos);
-			updateCamera();
-			bAdjust=false;
-		}else{
-			camPos.y-=1;
-			camera.worldToLocal(camPos);
-			camera.position.copy(camPos);
-			updateCamera();
-		}
-		//前
-		intersects=[];
-		var forwardRaycaster = new THREE.Raycaster(camPos,camVec,0,0.2);
-		intersects = forwardRaycaster.intersectObjects(this.currentShowModel.scene.children,true);
-		if(intersects[0]){
-			//不能往前移动
-			flyCtrl.moveState.forward=0;
-		}
-		//后
-		intersects=[];
-		var backVec=camVec.clone();
-		var backRaycaster = new THREE.Raycaster(camPos,backVec.negate(),0,0.2);
-		intersects = backRaycaster.intersectObjects(this.currentShowModel.scene.children,true);
-		if(intersects[0]){
-			//不能往后移动
-			flyCtrl.moveState.back=0;
-		}
-		//右
-		intersects=[];
-		var rightVec=new THREE.Vector3(1,0,0);
-		camera.localToWorld(rightVec);		
-		var rightRaycaster = new THREE.Raycaster(camPos,rightVec,0,0.2);
-		intersects = rightRaycaster.intersectObjects(this.currentShowModel.scene.children,true);
-		if(intersects[0]){
-			//不能往后移动
-			flyCtrl.moveState.right=0;
-		}
-		//左
-		intersects=[];
-		var leftVec=new THREE.Vector3(1,0,0);
-		camera.localToWorld(leftVec);		
-		var leftRaycaster = new THREE.Raycaster(camPos,leftVec,0,0.2);
-		intersects = leftRaycaster.intersectObjects(this.currentShowModel.scene.children,true);
-		if(intersects[0]){
-			//不能往后移动
-			flyCtrl.moveState.left=0;
+			this.mixers[ i ].update( delta);
 		}
 	}
-	*/
 }
 
 function getExtension(url){
@@ -135,19 +58,15 @@ ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFin
     function loadModel(loader,obj,initEffectParams,onProgress,onFinish,onError){
         loader.load(obj.url, function( data ) {		
             obj.scene=data;
-            //scope.reSetModelScale(obj.scene);			
-            if (data.animations && data.animations.length) {
-                
-                // if(!baseScene.animationCtrlMap.has(obj.id)){
-                //     var ac=new animationCtrl(obj.scene);								
-                //     baseScene.animationCtrlMap.set(obj.id,ac);
-                //     scope.clears.set(obj.id,baseScene.animationCtrlMap);
-                // }
-                // for ( var i = 0; i < data.animations.length; i ++ ) {
-                //     var animation = data.animations[ i ];
-                //     ac.addAnimationClip(animation);
-                // }
-            }
+					
+			obj.mixer = new THREE.AnimationMixer( obj.scene );
+			scope.mixers.push( obj.mixer );
+
+			if(data.animations.length > 0) {
+				var action = obj.mixer.clipAction( data.animations[ 0 ] );
+				action.play();
+			}
+            
             var initParams=initEffectParams||{};
     
             //设置初始位置
