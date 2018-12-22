@@ -166,9 +166,9 @@ ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFin
             }
                
             // 
-            //根据模型大小设置相机视角
-            obj.scene.boundingSphere=new THREE.Sphere(obj.scene.position.clone(),0.0);
-            var bs=obj.scene.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
+            //计算物件包围球
+            obj.boundingSphere=new THREE.Sphere();
+            obj.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
             // var pos=new THREE.Vector3();
             // baseScene.camera.position.copy(obj.scene.getWorldPosition(pos));
             // baseScene.camera.position.y+=(bs.radius+9)*Math.sin(Math.PI/4);
@@ -876,5 +876,17 @@ ModelManager.prototype.removePatrol= function(){
 
 //相机巡视物件 end
 /***********************************************************************************************************/
-
-
+//更改模型比例
+ModelManager.prototype.changeScale= function(id,scaleX,scaleY,scaleZ){
+	var object=this.getObject(id);
+	if(!defined(object))return null;	
+	if(scaleX==undefined)return null;	
+	if(scaleY==undefined||scaleZ==undefined){
+		scaleY=scaleZ=scaleX;
+	}
+	var scale=new THREE.Vector3(scaleX,scaleY,scaleZ);
+	if(!object.scene.originScale)object.scene.originScale=object.scene.scale.clone();
+	object.scene.scale.multiply(scale);
+	if(scaleX==scaleY&&scaleX==scaleZ)
+		object.boundingSphere.radius*=scaleX;
+}

@@ -87,3 +87,12 @@ function loadJs(url,id,callback){
     }      
     
 }
+
+function checkDegree(degree){
+    if(degree < 0) {
+        degree += 360;
+    } else if(degree > 360) {
+        degree -= 360;
+    }
+}
+

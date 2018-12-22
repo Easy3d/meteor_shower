@@ -3,7 +3,7 @@
 var _viewObject = {
     //场景map
 	scene:new THREE.Scene(),
-	camera:new THREE.PerspectiveCamera( 45, 1920 / 768, 1, 500000 ),
+	camera:new THREE.PerspectiveCamera( 45, 1920 / 768, 100, 500000 ),
 	renderer : new THREE.WebGLRenderer({
 		preserveDrawingBuffer: true,
 //                    alpha: true,     //使透明度可以被修改
@@ -48,7 +48,7 @@ var _viewObject = {
 	},
 	inputState:{
 		isUserInteracting:false,
-		rotationDela:{
+		rotationDelta:{
 			x:0,
 			y:0
 		}
@@ -88,17 +88,13 @@ function mainAnimate() {
 
 _viewObject.render = function () {
 	//TWEEN.update();	
-	var rotationDela=_viewObject.inputState.rotationDela;
+	var rotationDelta=_viewObject.inputState.rotationDelta;
 	if(this.inputState.isUserInteracting === false) {
-		rotationDela.y += 0.1;
-		if(rotationDela.y < 0) {
-			rotationDela.y += 360;
-		} else if(rotationDela.y > 360) {
-			rotationDela.y -= 360;
-		}
+		rotationDelta.y += 0.1;
+		checkDegree(rotationDelta.y);
 	}
-	_viewObject.gSphere.rotation.y = THREE.Math.degToRad(-rotationDela.y);
-	_viewObject.gSphere.rotation.x = THREE.Math.degToRad(-rotationDela.x);
+	_viewObject.gSphere.rotation.y = THREE.Math.degToRad(-rotationDelta.y);
+	_viewObject.gSphere.rotation.x = THREE.Math.degToRad(-rotationDelta.x);
 	_viewObject.renderer.render( _viewObject.scene, _viewObject.camera );		
 };
 
@@ -434,8 +430,10 @@ $(function () {
 	_viewObject.onWindowResize();
 	_viewObject.draw(true);
 	//模型管理器
+	var modelManager=_viewObject.modelManager;
 	loadJs(["js/super_manager.js","js/model_manager.js"],undefined,function(){
 		_viewObject.modelManager=new ModelManager(_viewObject.scene,_viewObject.camera);
+		modelManager=_viewObject.modelManager;
 		var url="data/xingkongmianp/haipingmian.FBX";
 		var initEffectParams={
 			parentNode:sphere,
@@ -451,41 +449,216 @@ $(function () {
 		},initEffectParams,_viewObject.loadCallback.onProgress,_viewObject.loadCallback.onFinish,_viewObject.loadCallback.onError);
 		
 	})
+	//更改模型比例
+	function changeScale(object,scale){
+		var s=new THREE.Vector3(scale,scale,scale);
+		if(!object.scene.originScale)object.scene.originScale=object.scene.scale.clone();
+		object.scene.scale.multiply(s);
+		object.boundingSphere.radius*=scale;
+	}
 
-
+	var currentView="haipingmian";
+	var objArr=new Array(3);
 	//注册事件
 	
 	_viewObject.inputEvent = new Hammer.Manager(container, {
 		recognizers: [
 			// RecognizerClass, [options], [recognizeWith, ...], [requireFailure, ...]
 			[Hammer.Tap],
+			[Hammer.Press],
 			[Hammer.Pan,{ direction: Hammer.DIRECTION_ALL }],
 			[Hammer.Pinch, { enable: true }],
 			[Hammer.Swipe,{ direction: Hammer.DIRECTION_ALL }],
 		]
 	});
 
+	var inputState=_viewObject.inputState;
+	var rotationDelta=_viewObject.inputState.rotationDelta;
+	var camera=_viewObject.camera;
+	_viewObject.inputEvent.on("pinchstart pinchmove pinchend pinchcancel pinchin pinchout", function(ev) {
+		
+		switch (ev.type) {
+			case "pinchstart":
+				inputState.isUserInteracting=true;
 
-
-	_viewObject.inputEvent.on("pinch", function(ev) {
-		alert(ev.type);
+				break;
+			case "panmove":
+				inputState.isUserInteracting=true;
+				break;
+			case "panend":
+				inputState.isUserInteracting=false;
+				break;
+			case "pinchcancel":
+				//alert(ev.type);
+				inputState.isUserInteracting=false;
+				break;
+			//缩小
+			case "pinchin":
+				inputState.isUserInteracting=true;
+				//里层球到眼前10时看外层球
+				if(currentView==="haipingmian"){
+					
+					if(objArr[0]==undefined){
+						objArr[0]=modelManager.getObject("haipingmian");
+						objArr[0].maxRadius=objArr[0].boundingSphere.radius;
+						objArr[0].minRadius=110;
+					}
+					objArr[0].scene.visible=true;
+					if(objArr[0].boundingSphere.radius<objArr[0].maxRadius){
+						camera.fov+=0.08;
+						camera.updateProjectionMatrix();
+						changeScale(objArr[0],1.02);
+					}else{
+						
+					}
+				}else if(currentView==="huancaibejing"){
+					
+					if(objArr[1]==undefined){
+						objArr[1]=modelManager.getObject("huancaibejing");
+						objArr[1].maxRadius=objArr[1].boundingSphere.radius;
+						objArr[1].minRadius=200;
+						camera.near=200;						
+					}
+					objArr[1].scene.visible=true;
+					if(objArr[1].boundingSphere.radius<objArr[1].maxRadius){
+						camera.fov+=0.08;
+						camera.updateProjectionMatrix();
+						changeScale(objArr[1],1.02);
+					}else{						
+						camera.fov=15;
+						camera.near=10;
+						camera.updateProjectionMatrix();
+						currentView="haipingmian";
+					
+					}
+				}else if(currentView==="yinhe"){
+					if(objArr[2]==undefined){
+						objArr[2]=modelManager.getObject("yinhe");
+						objArr[2].maxRadius=objArr[2].boundingSphere.radius;
+						objArr[2].minRadius=500;
+					}
+					if(objArr[2].boundingSphere.radius<objArr[2].maxRadius){
+						camera.fov+=0.08;
+						camera.updateProjectionMatrix();
+						changeScale(objArr[2],1.01);
+					}else{
+						camera.fov=15;
+						camera.near=200;
+						currentView="huancaibejing"
+						camera.updateProjectionMatrix();
+					}
+				}
+				break;
+			case "pinchout":
+				inputState.isUserInteracting=true;
+				//里层球到眼前10时看外层球
+				if(currentView==="haipingmian"){
+					if(objArr[0]==undefined){
+						objArr[0]=modelManager.getObject("haipingmian");
+						objArr[0].maxRadius=objArr[0].boundingSphere.radius;
+						objArr[0].minRadius=110;
+					}
+					if(objArr[0].boundingSphere.radius>objArr[0].minRadius){
+						camera.fov-=0.08;
+						camera.near=100;
+						camera.updateProjectionMatrix();
+						changeScale(objArr[0],0.98);
+					}else{
+						if(camera.near<objArr[0].boundingSphere.radius){
+							camera.near+=0.2;
+							// if(camera.fov<45){
+							// 	camera.fov+=0.1;
+							// }
+							camera.updateProjectionMatrix();
+							
+						}else{
+							camera.fov=45;
+							camera.updateProjectionMatrix();
+							currentView="huancaibejing";
+						}
+					}
+				}else if(currentView==="huancaibejing"){
+					objArr[0].scene.visible=false;
+					if(objArr[1]==undefined){
+						objArr[1]=modelManager.getObject("huancaibejing");
+						objArr[1].maxRadius=objArr[1].boundingSphere.radius;
+						objArr[1].minRadius=200;
+						camera.near=200;
+						objArr[0].scene.visible=false;
+					}
+					if(objArr[1].boundingSphere.radius>objArr[1].minRadius){
+						camera.fov-=0.08;
+						camera.near=200;
+						camera.updateProjectionMatrix();
+						changeScale(objArr[1],0.98);
+					}else{
+						if(camera.near<objArr[1].boundingSphere.radius){
+							camera.near+=0.5;
+							// if(camera.fov<45){
+							// 	camera.fov+=0.1;
+							// }
+							camera.updateProjectionMatrix();
+							
+						}else{
+							camera.fov=45;
+							camera.updateProjectionMatrix();
+							currentView="yinhe";
+						}
+					}
+				}else if(currentView==="yinhe"){
+					objArr[1].scene.visible=false;
+					if(objArr[2]==undefined){
+						objArr[2]=modelManager.getObject("yinhe");
+						objArr[2].maxRadius=objArr[2].boundingSphere.radius;
+						objArr[2].minRadius=500;
+					}
+					if(objArr[2].boundingSphere.radius>objArr[2].minRadius){
+						camera.fov-=0.08;
+						camera.updateProjectionMatrix();
+						changeScale(objArr[2],0.98);
+					}
+				}
+				break;
+		}
 	});
-	_viewObject.inputEvent.on("tap", function(ev) {
-		alert(ev.type);
+	_viewObject.inputEvent.on("press pressup", function(ev) {
+		inputState.isUserInteracting=true;
+		if(ev.type==='pressup'){
+			inputState.isUserInteracting=false;
+		}
 	});
 	_viewObject.inputEvent.on("swipe", function(ev) {
 		alert(ev.type);
 	});
-	_viewObject.inputEvent.on("pan panstart panmove panend pancancel", function(ev) {
+
+	//拖动屏幕事件
+	_viewObject.inputEvent.on("pan panstart panleft panright pandown panup panmove panend pancancel", function(ev) {
 		switch (ev.type) {
 			case "panstart":
-				console.info(ev);
+				inputState.isUserInteracting=true;
 				break;
-			case "panmove":
-				
+			case "panup":
+				inputState.isUserInteracting=true;
+				rotationDelta.x-=PAN_SPEED;
+				checkDegree(rotationDelta.x);
+				break;
+			case "pandown":
+				inputState.isUserInteracting=true;
+				rotationDelta.x+=PAN_SPEED;
+				checkDegree(rotationDelta.x);
+				break;
+			case "panright":
+				inputState.isUserInteracting=true;
+				rotationDelta.y+=PAN_SPEED;
+				checkDegree(rotationDelta.y);
+				break;
+			case "panleft":
+				inputState.isUserInteracting=true;
+				rotationDelta.y-=PAN_SPEED;
+				checkDegree(rotationDelta.y);
 				break;
 			case "panend":
-				console.info(ev);
+				inputState.isUserInteracting=false;
 				break;
 		}
 	});
