@@ -370,23 +370,101 @@ $(function () {
 	_viewObject.draw(true);
 	//模型管理器
 	var modelManager=_viewObject.modelManager;
+	
 	loadJs(["js/super_manager.js","js/model_manager.js"],undefined,function(){
 		_viewObject.modelManager=new ModelManager(_viewObject.scene,_viewObject.camera);
 		modelManager=_viewObject.modelManager;
-		var url="data/xingkongmianp/haipingmian.FBX";
-		var initEffectParams={
-			parentNode:sphere,
-			materialEffect:{
-				side:THREE.DoubleSide
+		// var url="data/xingkongmianp/r2_sea_level.fbx";
+		// var initEffectParams={
+		// 	parentNode:sphere,
+		// 	materialEffect:{
+		// 		side:THREE.DoubleSide
+		// 	}
+		// }
+		// _viewObject.addModel(url,"haipingmian",function(){
+		// 	url="data/xingkongmianp/r5_colorful_background.fbx";
+		// 	_viewObject.addModel(url,"huancaibejing",null,initEffectParams);
+		// 	url="data/xingkongmianp/r6_galaxy.fbx";
+		// 	_viewObject.addModel(url,"yinhe",null,initEffectParams);
+		// 	url="data/xingkongmianp/r4_scattered_stars.fbx";
+		// 	_viewObject.addModel(url,"scattered_stars",null,initEffectParams);
+		// 	url="data/xingkongmianp/r3_constellation.fbx";
+		// 	_viewObject.addModel(url,"constellation",null,initEffectParams);
+		// },initEffectParams,_viewObject.loadCallback.onProgress,_viewObject.loadCallback.onFinish,_viewObject.loadCallback.onError);
+		var loadList=[
+			{
+				url:"data/xingkongmianp/r2_sea_level.fbx",
+				id:"海平面",
+				initEffectParams:{
+					parentNode:sphere,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
+				}
+			},
+			{
+				url:"data/xingkongmianp/r3_constellation.fbx",
+				id:"星座",
+				initEffectParams:{
+					parentNode:sphere,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
+				}
+			},
+			{
+				url:"data/xingkongmianp/r4_scattered_stars.fbx",
+				id:"杂星",
+				initEffectParams:{
+					parentNode:sphere,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
+				}
+			},
+			{
+				url:"data/xingkongmianp/r5_colorful_background.fbx",
+				id:"彩色背景",
+				initEffectParams:{
+					parentNode:sphere,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
+				}
+			},
+			{
+				url:"data/xingkongmianp/r6_galaxy.fbx",
+				id:"银河",
+				initEffectParams:{
+					parentNode:sphere,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
+				}
 			}
-		}
-		_viewObject.addModel(url,"haipingmian",function(){
-			url="data/xingkongmianp/huancaibejing.FBX";
-			_viewObject.addModel(url,"huancaibejing",null,initEffectParams);
-			url="data/xingkongmianp/yinhe.FBX";
-			_viewObject.addModel(url,"yinhe",null,initEffectParams);
-		},initEffectParams,_viewObject.loadCallback.onProgress,_viewObject.loadCallback.onFinish,_viewObject.loadCallback.onError);
-		
+		];
+		modelManager.loadScene(loadList,function(ev){
+			_viewObject.processes.update(Math.round(ev.percent, 2) + "%", ev.percent>99?" Initializing...":"Loading...");
+		},function(){
+			setTimeout(function () {
+                _viewObject.processes.setVisible(false);
+            }, 500);
+			if(VIEW_MODE==='_DEBUG'){
+				var output_info=[];
+				for(var [id,object] of modelManager.collection){
+					var o={
+						id:id,
+						url:object.url,
+						sphere:object.boundingSphere
+					}
+					output_info.push(o);
+				}
+				var blob = new Blob([JSON.stringify(output_info)], { type: "" });
+				saveAs(blob, "scene_model.json");
+				_viewObject.processes.update("100%","Scene is ready!");
+			}
+		});
+
 	})
 	//更改模型比例
 	function changeScale(object,scale){
@@ -396,28 +474,184 @@ $(function () {
 		object.boundingSphere.radius*=scale;
 	}
 
-	var currentView="haipingmian";
+	var currentView="海平面";
 	var objArr=new Array(3);
-	//注册事件
+
 	
-	_viewObject.inputEvent = new Hammer.Manager(container, {
-		recognizers: [
-			// RecognizerClass, [options], [recognizeWith, ...], [requireFailure, ...]
-			[Hammer.Tap],
-			[Hammer.Pan,{ direction: Hammer.DIRECTION_ALL }],
-			[Hammer.Pinch, { enable: true }],
-		]
-	});
-
-	var       onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-                lon = 0, onMouseDownLon = 0,
-                lat = 0, onMouseDownLat = 0,
-                phi = 0, theta = 0;
-
-
 	var inputState=_viewObject.inputState;
 	var rotationDelta=_viewObject.inputState.rotationDelta;
 	var camera=_viewObject.camera;
+
+	function pinch_in(){
+		
+		if(currentView==="海平面"){
+			
+			if(objArr[0]==undefined){
+				objArr[0]=modelManager.getObject("海平面");
+				objArr[0].maxRadius=objArr[0].boundingSphere.radius;
+				objArr[0].minRadius=110;
+			}
+			
+			if(objArr[0].boundingSphere.radius<objArr[0].maxRadius){
+				camera.fov*=1.01;
+				camera.updateProjectionMatrix();
+				changeScale(objArr[0],1.11);
+			}else{
+				if(camera.fov<45){
+					camera.fov*=1.01;
+					camera.updateProjectionMatrix();
+				}
+			}
+		}else if(currentView==="彩色背景"){
+			
+			if(objArr[1]==undefined){
+				objArr[1]=modelManager.getObject("彩色背景");
+				objArr[1].maxRadius=objArr[1].boundingSphere.radius;
+				objArr[1].minRadius=550;
+				camera.near=500;						
+			}
+			
+			if(objArr[1].boundingSphere.radius<objArr[1].maxRadius){
+				camera.fov*=1.01;
+				camera.updateProjectionMatrix();
+				changeScale(objArr[1],1.11);
+			}else{						
+				camera.fov=15;
+				camera.near=100;
+				camera.updateProjectionMatrix();
+				currentView="海平面";
+				objArr[0].scene.visible=true;
+				objArr[1].scene.visible=true;
+			
+			}
+		}else if(currentView==="银河"){
+			if(objArr[2]==undefined){
+				objArr[2]=modelManager.getObject("银河");
+				objArr[2].maxRadius=objArr[2].boundingSphere.radius;
+				objArr[2].minRadius=500;
+			}
+			if(objArr[2].boundingSphere.radius<objArr[2].maxRadius){
+				camera.fov*=1.01;
+				camera.updateProjectionMatrix();
+				changeScale(objArr[2],1.11);
+			}else{
+				camera.fov=15;
+				camera.near=500;
+				currentView="彩色背景"
+				camera.updateProjectionMatrix();
+				objArr[1].scene.visible=true;
+				objArr[0].scene.visible=true;
+			}
+		}
+	}
+
+	function pinch_out(){
+		//
+		if(currentView==="海平面"){
+			if(objArr[0]==undefined){
+				objArr[0]=modelManager.getObject("海平面");
+				objArr[0].maxRadius=objArr[0].boundingSphere.radius;
+				objArr[0].minRadius=110;
+			}
+			if(objArr[0].boundingSphere.radius>objArr[0].minRadius){
+				camera.fov*=0.99;
+				camera.near=100;
+				camera.updateProjectionMatrix();
+				changeScale(objArr[0],0.9);
+			}else{
+				if(camera.near<objArr[0].boundingSphere.radius){
+					camera.near*=1.1;
+					// if(camera.fov<45){
+					// 	camera.fov+=0.1;
+					// }
+					camera.updateProjectionMatrix();
+					
+				}else{
+					objArr[0].scene.visible=false;
+					camera.fov=45;
+					camera.updateProjectionMatrix();
+					currentView="彩色背景";
+				}
+			}
+		}else if(currentView==="彩色背景"){
+			if(objArr[1]==undefined){
+				objArr[1]=modelManager.getObject("彩色背景");
+				objArr[1].maxRadius=objArr[1].boundingSphere.radius;
+				objArr[1].minRadius=550;
+				camera.near=500;						
+			}
+			if(objArr[1].boundingSphere.radius>objArr[1].minRadius){
+				camera.fov*=0.99;
+				camera.near=500;
+				camera.updateProjectionMatrix();
+				changeScale(objArr[1],0.9);
+			}else{
+				if(camera.near<objArr[1].boundingSphere.radius){
+		
+					camera.near*=1.1;
+					// if(camera.fov<45){
+					// 	camera.fov+=0.1;
+					// }
+					camera.updateProjectionMatrix();
+					
+				}else{
+					objArr[1].scene.visible=false;
+					camera.fov=45;
+					camera.updateProjectionMatrix();
+					currentView="银河";
+				}
+			}
+		}else if(currentView==="银河"){
+			
+			if(objArr[2]==undefined){
+				objArr[2]=modelManager.getObject("银河");
+				objArr[2].maxRadius=objArr[2].boundingSphere.radius;
+				objArr[2].minRadius=500;
+			}
+			if(objArr[2].boundingSphere.radius>objArr[2].minRadius){
+				camera.fov*=0.99;
+				camera.updateProjectionMatrix();
+				changeScale(objArr[2],0.8);
+			}
+		}
+	}
+
+	function backOrigin(){
+		modelManager.changeScale("海平面",1);
+		modelManager.changeScale("彩色背景",1);
+		modelManager.changeScale("银河",1);
+		camera.near=100;
+		camera.fov=45;
+		camera.updateProjectionMatrix();
+	}
+
+	//注册事件
+
+	_viewObject.inputEvent = new Hammer.Manager(container, {
+		recognizers: [
+			// RecognizerClass, [options], [recognizeWith, ...], [requireFailure, ...]
+			[Hammer.Pan,{ direction: Hammer.DIRECTION_ALL }],
+			[Hammer.Pinch, { enable: true }]
+		]
+	});
+	
+		
+	//双击 Tap recognizer with minimal 2 taps
+	_viewObject.inputEvent.add( new Hammer.Tap({ event: 'doubletap', taps: 2 }) );
+	//单击 Single tap recognizer
+	_viewObject.inputEvent.add( new Hammer.Tap({ event: 'singletap' }) );
+	_viewObject.inputEvent.get('doubletap').recognizeWith('singletap');	
+	_viewObject.inputEvent.get('singletap').requireFailure('doubletap');
+
+	_viewObject.inputEvent.on("singletap", function(ev) {
+		console.info(ev);
+	});
+	_viewObject.inputEvent.on("doubletap", function(ev) {
+		inputState.isUserInteracting=true;
+		backOrigin();
+		setTimeout(function(){inputState.isUserInteracting=false;}, 1000);
+	});
+
 	_viewObject.inputEvent.on("pinchstart pinchend pinchcancel pinchin pinchout", function(ev) {
 		
 		switch (ev.type) {
@@ -435,137 +669,11 @@ $(function () {
 			//缩小
 			case "pinchin":
 				inputState.isUserInteracting=true;
-				//里层球到眼前10时看外层球
-				if(currentView==="haipingmian"){
-					
-					if(objArr[0]==undefined){
-						objArr[0]=modelManager.getObject("haipingmian");
-						objArr[0].maxRadius=objArr[0].boundingSphere.radius;
-						objArr[0].minRadius=110;
-					}
-					
-					if(objArr[0].boundingSphere.radius<objArr[0].maxRadius){
-						camera.fov*=1.01;
-						camera.updateProjectionMatrix();
-						changeScale(objArr[0],1.11);
-					}else{
-						if(camera.fov<45){
-							camera.fov*=1.01;
-							camera.updateProjectionMatrix();
-						}
-					}
-				}else if(currentView==="huancaibejing"){
-					
-					if(objArr[1]==undefined){
-						objArr[1]=modelManager.getObject("huancaibejing");
-						objArr[1].maxRadius=objArr[1].boundingSphere.radius;
-						objArr[1].minRadius=550;
-						camera.near=500;						
-					}
-					
-					if(objArr[1].boundingSphere.radius<objArr[1].maxRadius){
-						camera.fov*=1.01;
-						camera.updateProjectionMatrix();
-						changeScale(objArr[1],1.11);
-					}else{						
-						camera.fov=15;
-						camera.near=100;
-						camera.updateProjectionMatrix();
-						currentView="haipingmian";
-						objArr[0].scene.visible=true;
-						objArr[1].scene.visible=true;
-					
-					}
-				}else if(currentView==="yinhe"){
-					if(objArr[2]==undefined){
-						objArr[2]=modelManager.getObject("yinhe");
-						objArr[2].maxRadius=objArr[2].boundingSphere.radius;
-						objArr[2].minRadius=500;
-					}
-					if(objArr[2].boundingSphere.radius<objArr[2].maxRadius){
-						camera.fov*=1.01;
-						camera.updateProjectionMatrix();
-						changeScale(objArr[2],1.11);
-					}else{
-						camera.fov=15;
-						camera.near=500;
-						currentView="huancaibejing"
-						camera.updateProjectionMatrix();
-						objArr[1].scene.visible=true;
-						objArr[0].scene.visible=true;
-					}
-				}
+				pinch_in();
 				break;
 			case "pinchout":
 				inputState.isUserInteracting=true;
-				//里层球到眼前10时看外层球
-				if(currentView==="haipingmian"){
-					if(objArr[0]==undefined){
-						objArr[0]=modelManager.getObject("haipingmian");
-						objArr[0].maxRadius=objArr[0].boundingSphere.radius;
-						objArr[0].minRadius=110;
-					}
-					if(objArr[0].boundingSphere.radius>objArr[0].minRadius){
-						camera.fov*=0.99;
-						camera.near=100;
-						camera.updateProjectionMatrix();
-						changeScale(objArr[0],0.9);
-					}else{
-						if(camera.near<objArr[0].boundingSphere.radius){
-							camera.near*=1.1;
-							// if(camera.fov<45){
-							// 	camera.fov+=0.1;
-							// }
-							camera.updateProjectionMatrix();
-							
-						}else{
-							objArr[0].scene.visible=false;
-							camera.fov=45;
-							camera.updateProjectionMatrix();
-							currentView="huancaibejing";
-						}
-					}
-				}else if(currentView==="huancaibejing"){
-					if(objArr[1]==undefined){
-						objArr[1]=modelManager.getObject("huancaibejing");
-						objArr[1].maxRadius=objArr[1].boundingSphere.radius;
-						objArr[1].minRadius=550;
-						camera.near=500;						
-					}
-					if(objArr[1].boundingSphere.radius>objArr[1].minRadius){
-						camera.fov*=0.99;
-						camera.near=500;
-						camera.updateProjectionMatrix();
-						changeScale(objArr[1],0.9);
-					}else{
-						if(camera.near<objArr[1].boundingSphere.radius){
-				
-							camera.near*=1.1;
-							// if(camera.fov<45){
-							// 	camera.fov+=0.1;
-							// }
-							camera.updateProjectionMatrix();
-							
-						}else{
-							objArr[1].scene.visible=false;
-							camera.fov=45;
-							camera.updateProjectionMatrix();
-							currentView="yinhe";
-						}
-					}
-				}else if(currentView==="yinhe"){
-					
-					if(objArr[2]==undefined){
-						objArr[2]=modelManager.getObject("yinhe");
-						objArr[2].maxRadius=objArr[2].boundingSphere.radius;
-						objArr[2].minRadius=500;
-					}
-					if(objArr[2].boundingSphere.radius>objArr[2].minRadius){
-						camera.fov*=0.99;
-						camera.updateProjectionMatrix();
-						changeScale(objArr[2],0.8);
-					}
-				}
+				pinch_out();
 				break;
 		}
 	});
@@ -574,9 +682,6 @@ $(function () {
 		if(ev.type==='pressup'){
 			inputState.isUserInteracting=false;
 		}
-	});
-	_viewObject.inputEvent.on("swipe", function(ev) {
-		alert(ev.type);
 	});
 
 	//拖动屏幕事件
@@ -609,5 +714,20 @@ $(function () {
 				break;
 		}
 	});
-	
+
+
+	// jquery 兼容的滚轮事件
+	$(container).on("mousewheel DOMMouseScroll", function (e) {
+		
+		var delta = (e.originalEvent.wheelDelta && (e.originalEvent.wheelDelta > 0 ? 1 : -1)) ||  // chrome & ie
+					(e.originalEvent.detail && (e.originalEvent.detail > 0 ? -1 : 1));              // firefox
+
+		
+		if (delta > 0) {
+			pinch_out();
+		} else if (delta < 0) {
+			pinch_in();
+		}
+	});
+
 })

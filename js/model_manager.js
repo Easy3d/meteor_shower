@@ -26,7 +26,7 @@ function ModelManager(scene,camera) {
 		if(!this.has(id)) return null;
 		return this.getObject(id).scene;
 	};
-
+	
 }
 
 //原型继承
@@ -48,51 +48,73 @@ function getExtension(url){
 	return url.substring(url.lastIndexOf('.')+1);
 }
 
+ModelManager.prototype.loadScene = function(modelList,onProgress,onFinish,onError){
+	var percent=0;
+	for (let index = 0; index < modelList.length; index++) {
+		var  modelInfo = modelList[index];
+		
+		this.addModel({url:modelInfo.url,id:modelInfo.id||""},modelInfo.initEffectParams,null,function(o){
+			percent+=1;
+			var outInfo={
+				info:o.name+"已加载完成...",
+				percent:percent/modelList.length*100,
+			}
+			onProgress(outInfo);
+			if(percent==modelList.length){
+				onFinish();
+			}
+		},function(err){
+			percent+=1;
+			var outInfo={
+				info:err,
+				percent:percent/modelList.length*100
+			}
+			onProgress(outInfo);
+			if(percent==modelList.length){
+				onFinish();
+			}
+		});		
+	}
+}
 // 添加一个模型
 ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFinish,onError){
 	if (!defined(obj.url))return undefined;	
 	var scope=this;	
-    if(scope.has(obj.id))return scope.getObject(obj.id);
-    
-
-    function loadModel(loader,obj,initEffectParams,onProgress,onFinish,onError){
-        loader.load(obj.url, function( data ) {		
-            obj.scene=data;
-					
+	if(scope.has(obj.id))return scope.getObject(obj.id);    
+	function loadModel(loader,obj,initEffectParams,onProgress,onFinish,onError){
+		loader.load(obj.url, function( data ) {	
+			
+			obj.scene=data;
 			obj.mixer = new THREE.AnimationMixer( obj.scene );
 			scope.mixers.push( obj.mixer );
-
+	
 			if(data.animations.length > 0) {
 				var action = obj.mixer.clipAction( data.animations[ 0 ] );
 				action.play();
 			}
-            
-            var initParams=initEffectParams||{};
-    
-            //设置初始位置
-            var initPos=initParams.position;
-            if(initPos){
-                obj.scene.position.copy(initPos);
-            }
-            //产生阴影
-            if(scope.castShadow){
-                scope.setMeshShadow(obj.scene,true,true);
-            }
-    
-            //设置模型材质效果
-            if(initParams.materialEffect){
-                scope.setModelMaterialEffect(obj.scene,initParams.materialEffect);
-            }
-               
-            // 
-            //计算物件包围球
-            obj.boundingSphere=new THREE.Sphere();
-            obj.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
-            // var pos=new THREE.Vector3();
-            // baseScene.camera.position.copy(obj.scene.getWorldPosition(pos));
-            // baseScene.camera.position.y+=(bs.radius+9)*Math.sin(Math.PI/4);
-            // baseScene.camera.position.z+=(bs.radius+10)*Math.cos(Math.PI/4);
-    
+			
+			var initParams=initEffectParams||{};
+	
+			//设置初始位置
+			var initPos=initParams.position;
+			if(initPos){
+				obj.scene.position.copy(initPos);
+			}
+			//产生阴影
+			if(scope.castShadow){
+				scope.setMeshShadow(obj.scene,true,true);
+			}
+	
+			//设置模型材质效果
+			if(initParams.materialEffect){
+				scope.setModelMaterialEffect(obj.scene,initParams.materialEffect);
+			}
+			   
+			// 
+			//计算物件包围球
+			obj.boundingSphere=new THREE.Sphere();
+			obj.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
+	
 			scope.add(obj.id,obj);
 			
 			if(initParams.parentNode){
@@ -100,68 +122,58 @@ ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFin
 			}else{
 				scope.scene.add(obj.scene);    
 			}
-
-              
-    
-    
-            // //处理一些模型透明纹理丢失问题
-            // if(initParams.transparentNode){
-            //     const transparentNode=initParams.transparentNode;
-            //     scope.setObjectAlphaColor(obj.id,transparentNode.transparent?transparentNode.transparent:0.2,
-            //                                 undefined,undefined,transparentNode.nodes,undefined,false);
-            // }
-    
-            //obj添加释放函数
-            obj.removeSelf=function(){
-                function disposeScene(o3d){
-                    if(o3d instanceof THREE.Mesh){
-                        //1、释放geometry
-                        o3d.geometry.dispose();
-                        //2、释放material
-                        if (Array.isArray(o3d.material)) {
-                            while(o3d.material.length>0){
-                                var mat=o3d.material.pop();
-                                //释放texture
-                                if(mat.map instanceof THREE.Texture)
-                                {
-                                    mat.map.dispose();
-                                }
-                                mat.dispose();
-                            }				
-                        }else{
-                            var mat=o3d.material;
-                                //释放texture
-                            if(mat.map instanceof THREE.Texture)
-                            {
-                                mat.map.dispose();
-                            }
-                            mat.dispose();
-                        }
-                    }else{
-                        var children=o3d.children;
-                        for (var i = 0; i < children.length; i++) {
-                            var o=children[i];
-                            disposeScene(o);
-                        }
-                    }
-                }
-                disposeScene(this.scene);
-                
-                if(this.modelInfo){
-                    this.modelInfo=[];
-                }
-                if(this.baseScene)
-                    this.baseScene=undefined;
-                if(this.nodeNameMap)
-                    this.nodeNameMap.clear();	
-            }
-            
-            if(typeof onFinish ==="function"){
-                onFinish(obj);
-            }
-            
-        },onProgress,onError);
-    }
+	
+			//obj添加释放函数
+			obj.removeSelf=function(){
+				function disposeScene(o3d){
+					if(o3d instanceof THREE.Mesh){
+						//1、释放geometry
+						o3d.geometry.dispose();
+						//2、释放material
+						if (Array.isArray(o3d.material)) {
+							while(o3d.material.length>0){
+								var mat=o3d.material.pop();
+								//释放texture
+								if(mat.map instanceof THREE.Texture)
+								{
+									mat.map.dispose();
+								}
+								mat.dispose();
+							}				
+						}else{
+							var mat=o3d.material;
+								//释放texture
+							if(mat.map instanceof THREE.Texture)
+							{
+								mat.map.dispose();
+							}
+							mat.dispose();
+						}
+					}else{
+						var children=o3d.children;
+						for (var i = 0; i < children.length; i++) {
+							var o=children[i];
+							disposeScene(o);
+						}
+					}
+				}
+				disposeScene(this.scene);
+				
+				if(this.modelInfo){
+					this.modelInfo=[];
+				}
+				if(this.baseScene)
+					this.baseScene=undefined;
+				if(this.nodeNameMap)
+					this.nodeNameMap.clear();	
+			}
+			
+			if(typeof onFinish ==="function"){
+				onFinish(obj);
+			}
+			
+		},onProgress,onError);
+	};
     var ext=getExtension(obj.url).toLowerCase();
     if(ext==="gltf"||ext==="glb"){
 		
