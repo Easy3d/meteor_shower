@@ -109,20 +109,25 @@ ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFin
 			if(initParams.materialEffect){
 				scope.setModelMaterialEffect(obj.scene,initParams.materialEffect);
 			}
-			   
-			// 
-			//计算物件包围球
-			obj.boundingSphere=new THREE.Sphere();
-			obj.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
-	
 			scope.add(obj.id,obj);
 			
 			if(initParams.parentNode){
 				initParams.parentNode.add(obj.scene);
 			}else{
 				scope.scene.add(obj.scene);    
-			}
-	
+			}   
+			//更新一下矩阵
+			obj.scene.updateMatrixWorld();
+			// 
+			//计算物件包围球
+			obj.boundingSphere=new THREE.Sphere();
+			obj.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
+			//计算轴心球
+			var cs=new THREE.Sphere();
+			obj.scene.getWorldPosition(cs.center);
+			var dis=cs.center.distanceTo(obj.boundingSphere.center);
+			obj.boundingSphere.center.copy(cs.center);
+			obj.boundingSphere.radius+=dis;
 			//obj添加释放函数
 			obj.removeSelf=function(){
 				function disposeScene(o3d){
