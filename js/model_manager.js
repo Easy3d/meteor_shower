@@ -58,6 +58,7 @@ ModelManager.prototype.loadScene = function(modelList,onProgress,onFinish,onErro
 			var outInfo={
 				info:o.name+"已加载完成...",
 				percent:percent/modelList.length*100,
+				object:o
 			}
 			onProgress(outInfo);
 			if(percent==modelList.length){
@@ -120,14 +121,14 @@ ModelManager.prototype.addModel = function(obj,initEffectParams,onProgress,onFin
 			obj.scene.updateMatrixWorld();
 			// 
 			//计算物件包围球
-			obj.boundingSphere=new THREE.Sphere();
-			obj.boundingSphere.copy(scope.computeBoundingSphere(obj.scene));
+			obj.scene.worldboundingSphere=new THREE.Sphere();
+			obj.scene.worldboundingSphere.copy(scope.computeBoundingSphere(obj.scene));
 			//计算轴心球
 			var cs=new THREE.Sphere();
 			obj.scene.getWorldPosition(cs.center);
-			var dis=cs.center.distanceTo(obj.boundingSphere.center);
-			obj.boundingSphere.center.copy(cs.center);
-			obj.boundingSphere.radius+=dis;
+			var dis=cs.center.distanceTo(obj.scene.worldboundingSphere.center);
+			obj.scene.worldboundingSphere.center.copy(cs.center);
+			obj.scene.worldboundingSphere.radius+=dis;
 			//obj添加释放函数
 			obj.removeSelf=function(){
 				function disposeScene(o3d){
