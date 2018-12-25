@@ -644,14 +644,13 @@ $(function () {
 				//alert(ev.type);
 				inputState.isUserInteracting=false;
 				break;
-			//缩小
 			case "pinchin":
 				inputState.isUserInteracting=true;
 				zoom_out();
 				break;
 			case "pinchout":
 				inputState.isUserInteracting=true;
-				zoom_int();
+				zoom_in();
 				break;
 		}
 	});
