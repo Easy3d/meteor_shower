@@ -647,11 +647,11 @@ $(function () {
 			//缩小
 			case "pinchin":
 				inputState.isUserInteracting=true;
-				zoom_in();
+				zoom_out();
 				break;
 			case "pinchout":
 				inputState.isUserInteracting=true;
-				zoom_out();
+				zoom_int();
 				break;
 		}
 	});
