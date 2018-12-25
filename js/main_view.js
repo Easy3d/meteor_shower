@@ -10,6 +10,7 @@ var _viewObject = {
 		antialias: true      //开启抗锯齿
 	}),
 	size:{
+		top:0,left:0,
 		width:1920,
 		height:768
 	},
@@ -60,6 +61,8 @@ var _viewObject = {
 
 	isDebug:VIEW_MODE==='_RELEASE'?true:false,
 
+	_postprocess:false,
+
 };
 
 
@@ -85,7 +88,10 @@ _viewObject.render = function () {
 	_viewObject.gSphere.rotation.x= THREE.Math.degToRad(-rotationDelta.y);
 	var delta=_viewObject.clock.getDelta();
 	if(_viewObject.modelManager)_viewObject.modelManager.update(delta);
-	_viewObject.renderer.render( _viewObject.scene, _viewObject.camera );		
+	
+	if (_viewObject._postprocess==false) _viewObject.renderer.render( _viewObject.scene, _viewObject.camera );		
+	else if(_viewObject._composer&&this._postprocess) 
+		_viewObject._composer.render();
 };
 
 _viewObject.draw = function (startOrstop) {
@@ -106,22 +112,64 @@ _viewObject.onWindowResize = function () {
 
 	_viewObject.camera.aspect = _viewObject.parentDom.offsetWidth/_viewObject.parentDom.offsetHeight;
 	_viewObject.camera.updateProjectionMatrix();
-
+	_viewObject.size.width=_viewObject.parentDom.offsetWidth;
+	_viewObject.size.height=_viewObject.parentDom.offsetHeight;
 	_viewObject.renderer.setSize( _viewObject.parentDom.offsetWidth, _viewObject.parentDom.offsetHeight );
 };
+
+function client2mouse(pos,size) {
+	var mouse = new THREE.Vector2();
+	mouse.x=(pos.x-size.left)/size.width*2-1;
+	mouse.y=-(pos.y-size.top)/size.height*2+1;
+	return mouse;
+}
+
+
 _viewObject.onClick=function(event) {
-	if(!_viewObject.mouseState.bClick)return false;
 	var pos=new THREE.Vector2(event.offsetX,event.offsetY);
-	if(event.target===_viewObject.rendererManager.renderObj._renderer.domElement){
-		_viewObject.rendererManager.onLeftClick(pos);
+	var bClick=false;
+	var mouse;
+	if(event.target===_viewObject.renderer.domElement){
+		mouse=client2mouse(pos,_viewObject.size);
+		bClick=true;
+		
 	}else{
 		var dom=event.target;
 		if(dom.className==="css2drenderDom"){
 			pos.x+=dom.offsetLeft;
 			pos.y+=dom.offsetTop;
-			_viewObject.rendererManager.onLeftClick(pos);
+			mouse=client2mouse(pos,_viewObject.size);
+			bClick=true;
 		}
 	}
+
+	if(bClick){
+		var intersectobj=_viewObject.modelManager.rayPick(mouse);
+		_viewObject.modelManager.addAlaphaAnimateModel(intersectobj.object,1,5);
+		//选取到物件,第一次添加outline
+		// if(!defined(_viewObject._outlinePass)&&intersectobj.object){
+		// 	_viewObject.enableOutline(true);
+		// }
+		// //不是上次选中的
+		// if (_viewObject._INTERSECTED != intersectobj.object ) {
+		// 	_viewObject._INTERSECTED = intersectobj.object;
+		// 	//点击默认选中边框
+		// 	//选中
+		// 	if (_viewObject._INTERSECTED) {				
+		// 		_viewObject._selectedMeshes=[];
+		// 		_viewObject._selectedMeshes.push(_viewObject._INTERSECTED);
+		// 		_viewObject._postprocess=true;
+		// 		_viewObject._outlinePass.selectedObjects=_viewObject._selectedMeshes;				
+		// 	}else{			
+		// 		_viewObject._outlinePass.selectedObjects=[];
+		// 		_viewObject._postprocess=false;
+		// 	}
+		// }
+	}
+	
+
+	
+
 	
 }
 
@@ -483,6 +531,10 @@ $(function () {
 		});
 
 	})
+
+	//支持Postprocessing
+	loadJs(["js/libs/shaders/CopyShader.js","js/libs/shaders/FXAAShader.js",  "js/libs/postprocessing/EffectComposer.js","js/libs/postprocessing/RenderPass.js",
+	"js/libs/postprocessing/ShaderPass.js","js/libs/postprocessing/OutlinePass.js"])
 	//更改模型比例
 	function changeScale(object,scale){
 		var s=new THREE.Vector3(scale,scale,scale);
@@ -622,7 +674,7 @@ $(function () {
 	_viewObject.inputEvent.get('singletap').requireFailure('doubletap');
 
 	_viewObject.inputEvent.on("singletap", function(ev) {
-		console.info(ev);
+		_viewObject.onClick(ev.srcEvent);
 	});
 	_viewObject.inputEvent.on("doubletap", function(ev) {
 		inputState.isUserInteracting=true;

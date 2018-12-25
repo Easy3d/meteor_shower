@@ -19,6 +19,7 @@ function ModelManager(scene,camera) {
 //高亮的mesh列表
 	this._highLights=[];
 
+	this.alaphaAniModels=new Map;
 	//清理资源列表
 	this.clears=new Map;
 
@@ -42,6 +43,25 @@ ModelManager.prototype.update = function(delta) {
 			this.mixers[ i ].update( delta);
 		}
 	}
+
+	var scope=this;
+
+	this.alaphaAniModels.forEach(function(params, model, mapObj){
+		if(params.runTime===undefined){
+			params.runTime=0;
+		}else if(params.runTime<=params.duration){
+			params.runTime+=delta;
+			var count=Math.floor(params.runTime/params.interval);
+			var opacity=1-(params.runTime-params.interval*count)/params.interval;
+			scope.setModelMaterialEffect(model,{
+				transparent: true,
+				opacity:opacity,
+				color:params.color
+			})
+		}else{
+			mapObj.delete(model);
+		}
+	});
 }
 
 function getExtension(url){
@@ -251,7 +271,7 @@ ModelManager.prototype.setModelMaterialEffect =function(model,materialParams){
 				var mat=model.material[j];
 				//修改材质中支持的参数
 				for ( var property in materialParams) {
-					if(defined(mat[property])){
+					if(defined(mat[property])&&defined(materialParams[property])){
 						mat[property]=materialParams[property];
 					}					
 	
@@ -260,7 +280,7 @@ ModelManager.prototype.setModelMaterialEffect =function(model,materialParams){
 		}else{
 			//修改材质中支持的参数
 			for ( var property in materialParams) {
-				if(defined(model.material[property])){
+				if(defined(model.material[property])&&defined(materialParams[property])){
 					model.material[property]=materialParams[property];
 				}					
 
@@ -415,6 +435,28 @@ function ascSort( a, b ) {
 	return a.distance - b.distance;
 
 }
+//从父节点往上查找是否有visible为false
+ModelManager.prototype.checkVisible= function(model) {
+	if(model.visible===false)
+	{
+		return false;
+	}else{
+		if(model.parent instanceof THREE.Scene){
+			return true;
+		}else{
+			return this.checkVisible(model.parent);
+		}
+	}
+}
+
+ModelManager.prototype.addAlaphaAnimateModel= function(model,interval,duration,color) {
+	if(this.alaphaAniModels.has(model))return;
+	this.alaphaAniModels.set(model,{duration:duration,interval:interval,color:color});
+}
+ModelManager.prototype.removeAlaphaAnimateModel= function(model) {
+
+}
+
 ModelManager.prototype.rayPick= function(mouse) {
 	var raycaster = new THREE.Raycaster();
 	raycaster.setFromCamera( mouse, this.camera );
@@ -422,7 +464,7 @@ ModelManager.prototype.rayPick= function(mouse) {
 	var intersects=[];
 	for(var [id,obj] of this._collection){
 		var model=obj.scene;
-		if((model instanceof THREE.Object3D)&&model.visible==true){
+		if((model instanceof THREE.Object3D)&&this.checkVisible(model)){
 			var intersect=raycaster.intersectObjects(model.children,true);
 			if(intersect.length>0){
 				//intersects.push(intersect);
