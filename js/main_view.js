@@ -49,6 +49,7 @@ var _viewObject = {
 	},
 	inputState:{
 		isUserInteracting:false,
+		waitingTime:0,
 		rotationDelta:{
 			x:0,
 			y:0
@@ -69,7 +70,6 @@ var _viewObject = {
 function mainAnimate() {
 	if(_viewObject.mainAnimate_startOrstop===false)return;
 	window.setTimeout( function() { requestAnimationFrame(mainAnimate); }, 1000 / 25);
-	//requestAnimationFrame(mainAnimate);
 	_viewObject.render();
 	if(_viewObject._stats){
 		_viewObject._stats.update();
@@ -80,9 +80,10 @@ function mainAnimate() {
 _viewObject.render = function () {
 	//TWEEN.update();	
 	var rotationDelta=_viewObject.inputState.rotationDelta;
-	if(this.inputState.isUserInteracting === false) {
+	if(this.inputState.isUserInteracting === false&&this.inputState.waitingTime<=0) {
 		rotationDelta.x += 0.1;
 		checkDegree(rotationDelta.x);
+		this.inputState.waitingTime=0;
 	}
 	_viewObject.gSphere.rotation.y = THREE.Math.degToRad(-rotationDelta.x);
 	_viewObject.gSphere.rotation.x= THREE.Math.degToRad(-rotationDelta.y);
@@ -92,6 +93,7 @@ _viewObject.render = function () {
 	if (_viewObject._postprocess==false) _viewObject.renderer.render( _viewObject.scene, _viewObject.camera );		
 	else if(_viewObject._composer&&this._postprocess) 
 		_viewObject._composer.render();
+	this.inputState.waitingTime-=delta;
 };
 
 _viewObject.draw = function (startOrstop) {
@@ -675,11 +677,13 @@ $(function () {
 
 	_viewObject.inputEvent.on("singletap", function(ev) {
 		_viewObject.onClick(ev.srcEvent);
+		inputState.waitingTime=1;
 	});
 	_viewObject.inputEvent.on("doubletap", function(ev) {
 		inputState.isUserInteracting=true;
 		backOrigin();
 		setTimeout(function(){inputState.isUserInteracting=false;}, 1000);
+		inputState.waitingTime=1;
 	});
 
 	_viewObject.inputEvent.on("pinchstart pinchend pinchcancel pinchin pinchout", function(ev) {
@@ -691,6 +695,7 @@ $(function () {
 
 			case "panend":
 				inputState.isUserInteracting=false;
+				inputState.waitingTime=1;
 				break;
 			case "pinchcancel":
 				//alert(ev.type);
@@ -740,6 +745,7 @@ $(function () {
 				break;
 			case "panend":
 				inputState.isUserInteracting=false;
+				inputState.waitingTime=1;
 				break;
 		}
 	});
@@ -747,6 +753,7 @@ $(function () {
 
 	// jquery 兼容的滚轮事件
 	$(container).on("mousewheel DOMMouseScroll", function (e) {
+		
 		
 		var delta = (e.originalEvent.wheelDelta && (e.originalEvent.wheelDelta > 0 ? 1 : -1)) ||  // chrome & ie
 					(e.originalEvent.detail && (e.originalEvent.detail > 0 ? -1 : 1));              // firefox
@@ -758,6 +765,7 @@ $(function () {
 		} else if (delta < 0) {
 			zoom_out();
 		}
+		inputState.waitingTime=1;
 	});
 
 })
