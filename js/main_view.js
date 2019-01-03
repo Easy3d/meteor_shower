@@ -444,6 +444,15 @@ $(function () {
 		sphere1.worldboundingSphere=new THREE.Sphere();
 		sphere.add(sphere1);
 		var load1=[{
+			url:"data/xingkongmianp/FBX/r1_four_planes.fbx",
+			id:"四面片",
+			initEffectParams:{
+				parentNode:sphere1,
+				materialEffect:{
+					side:THREE.DoubleSide
+				}
+			}
+		},{
 			url:"data/xingkongmianp/FBX/r2_sea_level.fbx",
 			id:"海平面",
 			initEffectParams:{
