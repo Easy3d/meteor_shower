@@ -444,7 +444,7 @@ $(function () {
 		sphere1.worldboundingSphere=new THREE.Sphere();
 		sphere.add(sphere1);
 		var load1=[{
-			url:"data/xingkongmianp/r2_sea_level.fbx",
+			url:"data/xingkongmianp/FBX/r2_sea_level.fbx",
 			id:"海平面",
 			initEffectParams:{
 				parentNode:sphere1,
@@ -453,7 +453,7 @@ $(function () {
 				}
 			}
 		},{
-			url:"data/xingkongmianp/r5_colorful_background.fbx",
+			url:"data/xingkongmianp/FBX/r5_colorful_background.fbx",
 			id:"彩色背景",
 			initEffectParams:{
 				parentNode:sphere1,
@@ -478,7 +478,7 @@ $(function () {
 			sphere.add(sphere2);
 			var load2=[
 			{
-				url:"data/xingkongmianp/r3_constellation.fbx",
+				url:"data/xingkongmianp/FBX/r3_constellation.fbx",
 				id:"星座",
 				initEffectParams:{
 					parentNode:sphere2,
@@ -488,7 +488,7 @@ $(function () {
 				}
 			},
 			{
-				url:"data/xingkongmianp/r4_scattered_stars.fbx",
+				url:"data/xingkongmianp/FBX/r4_scattered_stars.fbx",
 				id:"杂星",
 				initEffectParams:{
 					parentNode:sphere2,
@@ -498,7 +498,7 @@ $(function () {
 				}
 			},
 			{
-				url:"data/xingkongmianp/r6_galaxy.fbx",
+				url:"data/xingkongmianp/FBX/r6_galaxy.fbx",
 				id:"银河",
 				initEffectParams:{
 					parentNode:sphere2,
