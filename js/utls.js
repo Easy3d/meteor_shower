@@ -13,10 +13,6 @@ const PAI = 3.1415926;
 
 const LOW_LINE = '_';
 
-//发布时请将模式改为_RELEASE
-const VIEW_MODE='_RELEASE';
-//const VIEW_MODE='_RELEASE';
-
 
 function loadCss(url,id) {
     var head = document.getElementsByTagName('head')[0];

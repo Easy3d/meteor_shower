@@ -443,34 +443,40 @@ $(function () {
 		sphere1.name="彩色背景层";
 		sphere1.worldboundingSphere=new THREE.Sphere();
 		sphere.add(sphere1);
-		var load1=[{
-			url:"data/xingkongmianp/FBX/r1_four_planes.fbx",
-			id:"四面片",
-			initEffectParams:{
-				parentNode:sphere1,
-				materialEffect:{
-					side:THREE.DoubleSide
+		var load1=[
+			{
+				url:"data/xingkongmianp/FBX/r1_four_planes.FBX",
+				id:"四面片",
+				initEffectParams:{
+					parentNode:sphere1,
+					materialEffect:{
+						side:THREE.DoubleSide,
+						opacity:true,
+						transparent:0.6
+					}
+				}
+			},
+			{
+				url:"data/xingkongmianp/FBX/r2_sea_level.FBX",
+				id:"海平面",
+				initEffectParams:{
+					parentNode:sphere1,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
 				}
 			}
-		},{
-			url:"data/xingkongmianp/FBX/r2_sea_level.fbx",
-			id:"海平面",
-			initEffectParams:{
-				parentNode:sphere1,
-				materialEffect:{
-					side:THREE.DoubleSide
+			,{
+				url:"data/xingkongmianp/FBX/r5_colorful_background.FBX",
+				id:"彩色背景",
+				initEffectParams:{
+					parentNode:sphere1,
+					materialEffect:{
+						side:THREE.DoubleSide
+					}
 				}
 			}
-		},{
-			url:"data/xingkongmianp/FBX/r5_colorful_background.fbx",
-			id:"彩色背景",
-			initEffectParams:{
-				parentNode:sphere1,
-				materialEffect:{
-					side:THREE.DoubleSide
-				}
-			}
-		}];
+		];
 		
 		modelManager.loadScene(load1,function(ev){
 			//_viewObject.processes.update(Math.round(ev.percent, 2) + "%", ev.percent>99?" Initializing...":"Loading...");
@@ -486,36 +492,73 @@ $(function () {
 			sphere2.worldboundingSphere=new THREE.Sphere();
 			sphere.add(sphere2);
 			var load2=[
-			{
-				url:"data/xingkongmianp/FBX/r3_constellation.fbx",
-				id:"星座",
-				initEffectParams:{
-					parentNode:sphere2,
-					materialEffect:{
-						side:THREE.DoubleSide
+				{
+					url:"data/xingkongmianp/FBX/constellation_stars.FBX",
+					id:"星座",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
+					}
+				},{
+					url:"data/xingkongmianp/FBX/constellation_line.FBX",
+					id:"星座连线",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
+					}
+				},{
+					url:"data/xingkongmianp/FBX/xingxiu_name.FBX",
+					id:"星宿名称",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
+					}
+				},{
+					url:"data/xingkongmianp/FBX/xingxiu_star.FBX",
+					id:"星宿星星",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
+					}
+				},{
+					url:"data/xingkongmianp/FBX/xingxiu_line.FBX",
+					id:"星宿连线",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
+					}
+				},
+				{
+					url:"data/xingkongmianp/FBX/r4_scattered_stars.FBX",
+					id:"杂星",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
+					}
+				},
+				{
+					url:"data/xingkongmianp/FBX/r6_galaxy.FBX",
+					id:"银河",
+					initEffectParams:{
+						parentNode:sphere2,
+						materialEffect:{
+							side:THREE.DoubleSide
+						}
 					}
 				}
-			},
-			{
-				url:"data/xingkongmianp/FBX/r4_scattered_stars.fbx",
-				id:"杂星",
-				initEffectParams:{
-					parentNode:sphere2,
-					materialEffect:{
-						side:THREE.DoubleSide
-					}
-				}
-			},
-			{
-				url:"data/xingkongmianp/FBX/r6_galaxy.fbx",
-				id:"银河",
-				initEffectParams:{
-					parentNode:sphere2,
-					materialEffect:{
-						side:THREE.DoubleSide
-					}
-				}
-			}];
+			];
 			
 			modelManager.loadScene(load2,function(ev){
 				//_viewObject.processes.update(Math.round(ev.percent, 2) + "%", ev.percent>99?" Initializing...":"Loading...");
@@ -776,5 +819,7 @@ $(function () {
 		}
 		inputState.waitingTime=1;
 	});
+
+
 
 })
